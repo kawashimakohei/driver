@@ -4,7 +4,7 @@
 
 現在の最小版では、管理画面でリンク生成だけを行います。Twilio SMS送信、返信LP、電話予約LP、求人LP分岐はコード上に残していますが、管理画面では使わない状態にしています。
 
-最重要ルール: 既存DBスプレッドシートは読み取り専用です。`DB_SPREADSHEET_ID`側の3つの参照シートには、書き込み・列追加・行追加・書式変更を一切しません。書き込みは`LOG_SPREADSHEET_ID`配下のMVP用タブだけです。
+最重要ルール: 既存DBスプレッドシートは読み取り専用です。`DB_SPREADSHEET_ID`側の3つの参照シートには、書き込み・列追加・行追加・書式変更を一切しません。Render側へDB照会結果は返さず、クリック時にGAS内だけで最小列を照合します。書き込みは`LOG_SPREADSHEET_ID`配下のMVP用タブと、指定された`【記入用】Clickbot`だけです。
 
 ## ファイル構成
 
@@ -90,7 +90,7 @@ JOBS_URL=
 
 ## DB_SPREADSHEET_IDとLOG_SPREADSHEET_ID
 
-`DB_SPREADSHEET_ID`は既存DBです。参照シートは以下の3つです。
+`DB_SPREADSHEET_ID`は既存DBです。参照シートは以下の3つだけです。`【記入用】AI Slackbot`と`【記入用】SMS折返`は読み取り元として使いません。
 
 ```text
 【閲覧用】
@@ -98,7 +98,7 @@ JOBS_URL=
 【閲覧用】スカウト
 ```
 
-GAS内では`dbSs = SpreadsheetApp.openById(DB_SPREADSHEET_ID)`を読み取り専用として扱い、`getSheetByName()`、`getRange()`、`getDisplayValues()`、`getLastRow()`、`getLastColumn()`だけを使います。
+GAS内では`dbSs = SpreadsheetApp.openById(DB_SPREADSHEET_ID)`を読み取り専用として扱い、`getSheetByName()`、`getRange()`、`getDisplayValues()`、`getLastRow()`だけを使います。照合時に読む列はC:Fのみです。
 
 `LOG_SPREADSHEET_ID`はログ用です。書き込みは次の許可シートだけに限定しています。
 
@@ -212,7 +212,7 @@ CTAは以下です。
 求人を見る -> https://driver-concierge.jp/b/form/?utm_campaign=<clicked_path_key>
 ```
 
-このLPにアクセスされた時点で、GASへ`recordPublicClick`を送信します。GAS側は`public_tracking_code`で`LinkIndex`を照合し、電話番号・氏名・clicked_path_keyを`PublicClickEvents`へ記録します。
+このLPにアクセスされた時点で、GASへ`recordPublicClick`を送信します。GAS側は`public_tracking_code`で`LinkIndex`を照合し、LinkIndex内の電話番号を使ってGAS内部だけでDBのC:F列を検索し、電話番号・氏名・clicked_path_keyを`PublicClickEvents`と`【記入用】Clickbot`へ記録します。DB照会結果はRenderやブラウザへ返しません。
 
 ## リンク生成の使い方
 
@@ -227,7 +227,7 @@ candidate_key
 エラー有無
 ```
 
-GAS保存に成功した場合は`LinkIndex`にも保存します。GAS保存に失敗しても、リンク生成結果は画面に表示します。
+GAS保存に成功した場合は`LinkIndex`にも保存します。GAS保存に失敗しても、リンク生成結果は画面に表示します。リンク生成時はDB照会を行わず、CSVの電話番号と生成URLだけを保存します。
 
 ## クリックテスト方法
 
@@ -256,6 +256,6 @@ line
 
 ## 既存DBを壊さないための注意点
 
-参照DBシートには、candidate_key、link_id、tracking_url、送信日時、クリック日時、ログ列、メモ列などを追加しません。クリック時・回答時はDB本体を検索せず、SMS送信時に保存した`LinkIndex`だけを参照します。
+参照DBシートには、candidate_key、link_id、tracking_url、送信日時、クリック日時、ログ列、メモ列などを追加しません。クリック時はGAS内部で電話番号を照合しますが、DB側には一切書き込みません。
 
 コード上でも`DB_SPREADSHEET_ID`で開いた`dbSs`には読み取り処理だけを行います。append、set、clear、delete、insert、sort、filter、protectなどの処理は書いていません。

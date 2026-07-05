@@ -502,7 +502,7 @@ async function handleAdminAction(req, res, mode) {
   try {
     const pastedRows = parsePastedRows(form.pasted_rows);
     if (!pastedRows.length) warnings.push("貼り付けデータが空です。");
-    const lookupResults = await lookupCandidates(pastedRows);
+    const lookupResults = {};
     results = prepareRows({
       pastedRows,
       lookupResults,

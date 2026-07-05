@@ -351,7 +351,7 @@ function doPost(e) {
       throw new Error('Unauthorized');
     }
     if (body.action === 'lookup') {
-      return json_({ ok: true, results: lookupCandidates_(body.phones || []) });
+      return json_({ ok: true, results: {} });
     }
     if (body.action === 'recordLinkIndexBatch') {
       appendObjects_('LinkIndex', HEADERS.LinkIndex, body.rows || []);
@@ -374,20 +374,22 @@ function doPost(e) {
 function recordPublicClick_(body) {
   const linkRecord = findLinkByPublicCode_(body.public_tracking_code);
   const clickedPathKey = buildClickedPathKeyForOutput_(linkRecord, body);
+  const candidate = lookupCandidateForLinkRecord_(linkRecord);
+  const phone = candidate.phone_number || (linkRecord ? linkRecord.phone_number : '');
   const payload = {
     timestamp: new Date(),
-    phone_number: linkRecord ? linkRecord.phone_number : '',
-    name: linkRecord ? linkRecord.name : '',
+    phone_number: phone,
+    name: candidate.name || '',
     clicked_path_key: clickedPathKey,
     public_tracking_code: body.public_tracking_code || '',
     clicked_url: body.clicked_url || '',
     lp_path: body.lp_path || '',
-    candidate_key: linkRecord ? linkRecord.candidate_key : '',
-    candidate_no: linkRecord ? linkRecord.candidate_no : '',
+    candidate_key: candidate.candidate_key || (linkRecord ? linkRecord.candidate_key : ''),
+    candidate_no: candidate.candidate_no || (linkRecord ? linkRecord.candidate_no : ''),
     raw_json: JSON.stringify(body)
   };
   appendObjects_('PublicClickEvents', HEADERS.PublicClickEvents, [payload]);
-  appendClickbotRow_(linkRecord, clickedPathKey);
+  appendClickbotRow_(linkRecord, candidate, clickedPathKey);
 }
 
 function buildClickedPathKeyForOutput_(linkRecord, body) {
@@ -406,12 +408,21 @@ function pathKeyFromUrl_(url) {
   }
 }
 
-function appendClickbotRow_(linkRecord, clickedPathKey) {
+function lookupCandidateForLinkRecord_(linkRecord) {
+  if (!linkRecord) return {};
+  const phone = linkRecord.phone_number || linkRecord.raw_input_phone || '';
+  if (!phone) return {};
+  const results = lookupCandidates_([phone]);
+  return results[normalizePhone_(phone)] || {};
+}
+
+function appendClickbotRow_(linkRecord, candidate, clickedPathKey) {
   if (!linkRecord || !clickedPathKey) return;
+  const phone = formatPhone_(candidate.phone_number || linkRecord.phone_number || linkRecord.raw_input_phone);
   const row = [
-    linkRecord.phone_number || '',
-    linkRecord.address || '',
-    linkRecord.name || '',
+    phone.withZero,
+    candidate.address || '',
+    candidate.name || '',
     clickedPathKey
   ];
   withLock_(function() {
