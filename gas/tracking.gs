@@ -246,7 +246,11 @@ function getWritableSheet_(sheetName) {
 
   const ss = SpreadsheetApp.openById(getRequiredProp_('LOG_SPREADSHEET_ID'));
 
-  const sheet = ss.getSheetByName(sheetName);
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet && HEADERS[sheetName]) {
+    sheet = ss.insertSheet(sheetName);
+    ensureHeaders_(sheet, HEADERS[sheetName]);
+  }
   if (!sheet) {
     throw new Error('Writable sheet not found: ' + sheetName);
   }
