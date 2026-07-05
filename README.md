@@ -98,8 +98,6 @@ JOBS_URL=
 【閲覧用】スカウト
 ```
 
-Clickbot連携では、上記3シートが同じスプレッドシート内にない場合の読み取り候補として、`【記入用】AI Slackbot`と`【記入用】SMS折返`も参照できます。これらも読み取り専用で扱い、書き込みません。
-
 GAS内では`dbSs = SpreadsheetApp.openById(DB_SPREADSHEET_ID)`を読み取り専用として扱い、`getSheetByName()`、`getRange()`、`getDisplayValues()`、`getLastRow()`、`getLastColumn()`だけを使います。
 
 `LOG_SPREADSHEET_ID`はログ用です。書き込みは次の許可シートだけに限定しています。

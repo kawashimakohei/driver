@@ -1,9 +1,7 @@
 const DB_SHEETS = [
   { name: '【閲覧用】', key: 'a', priority: 3 },
   { name: '【閲覧用】タクシー', key: 'b', priority: 2 },
-  { name: '【閲覧用】スカウト', key: 'c', priority: 1 },
-  { name: '【記入用】AI Slackbot', key: 'ai_slackbot', priority: 4, dataStartRow: 4, phoneIndex: 0, candidateNoIndex: 6, nameIndex: 2, addressIndex: -1 },
-  { name: '【記入用】SMS折返', key: 'sms_callback', priority: 5, dataStartRow: 5, phoneIndex: 0, candidateNoIndex: 3, nameIndex: 4, addressIndex: -1 }
+  { name: '【閲覧用】スカウト', key: 'c', priority: 1 }
 ];
 
 const WRITABLE_SHEETS = [
