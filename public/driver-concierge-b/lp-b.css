@@ -1,0 +1,134 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  padding-top: 40px;
+  margin-bottom: 35px;
+  background-color: #5de0e6;
+}
+
+.app {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  background-color: #5de0e6;
+}
+
+@media (min-width: 430px) {
+  body {
+    background-color: #f0f0f0;
+  }
+}
+
+header {
+  background-color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 50;
+  max-width: 430px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+header h1 {
+  color: #004691;
+  margin: 0;
+  padding: 5px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #004691;
+  color: white;
+  text-align: right;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 7px 0;
+}
+
+footer p {
+  margin: 0;
+  padding: 0;
+  padding-right: 5px;
+}
+
+#dateTime {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.fv-container {
+  position: relative;
+}
+
+.fv {
+  width: 100%;
+  display: block;
+}
+
+.fv-buttons-container {
+  position: absolute;
+  top: 55%;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.fv-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.fv-button {
+  padding: 1.5vh 4vw;
+  margin-bottom: 1.5vh;
+  border: 1.5px solid lightgrey;
+  border-radius: 7px;
+  color: white;
+  font-size: 4.4vw;
+  text-decoration: none;
+  width: 82%;
+  max-width: 320px;
+  font-weight: bold;
+  text-align: center;
+  box-sizing: border-box;
+  line-height: 1.25;
+}
+
+#fv-button-now {
+  background-color: #ffab40;
+}
+
+#fv-button-later {
+  background-color: #0097a7;
+}
+
+#fv-button-jobs {
+  background-color: #004691;
+}
+
+@media (min-width: 430px) {
+  .fv-button {
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    font-size: 18px;
+  }
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMS送信システム</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <% if (!authenticated) { %>
+    <main class="login-main">
+      <section class="login-box">
+        <h1>SMS送信システム</h1>
+        <% if (!adminConfigured) { %>
+          <div class="notice error">ADMIN_PASSWORDを設定してください。</div>
+        <% } %>
+        <% warnings.forEach(function(warning) { %>
+          <div class="notice error"><%= warning %></div>
+        <% }) %>
+        <form method="post" action="/admin/login">
+          <input type="password" name="password" placeholder="パスワード" autocomplete="current-password">
+          <button type="submit">ログイン</button>
+        </form>
+      </section>
+    </main>
+  <% } else { %>
+    <form id="admin-form" method="post">
+      <main id="controls">
+        <section class="left-column" id="info">
+          <button id="generate-button" type="submit" formaction="/admin/generate">URL生成</button>
+          <button id="start-button" type="submit" formaction="/admin/send">送信開始</button>
+          <button id="stop-button" type="button" class="hide">送信停止</button>
+          <div id="log">
+            <p class="log-entry">CSVを選択してください。</p>
+            <% if (mode === 'generate') { %>
+              <p class="log-entry">URL生成が完了しました。</p>
+            <% } %>
+            <% if (mode === 'send') { %>
+              <p class="log-entry">送信処理が完了しました。</p>
+            <% } %>
+            <% if (!gasConfigured) { %>
+              <p class="log-entry error-text">GAS設定が未完了です。</p>
+            <% } %>
+            <% warnings.forEach(function(warning) { %>
+              <p class="log-entry error-text"><%= warning %></p>
+            <% }) %>
+          </div>
+          <button class="logout-button" type="submit" formaction="/admin/logout">ログアウト</button>
+        </section>
+
+        <section class="right-column">
+          <input type="file" id="file-input" accept=".csv,.tsv,text/csv,text/tab-separated-values">
+          <input type="text" name="lp_url" value="<%= form.lp_url %>" placeholder="使用するLP URL 例: https://driver-concierge.jp/a">
+          <input type="text" value="<%= senderPhone %>" placeholder="送信元電話番号" readonly>
+          <input type="hidden" name="destination_type" value="track">
+          <input type="hidden" name="channel" value="sms">
+          <textarea id="pasted-rows" name="pasted_rows" class="hide"><%= form.pasted_rows %></textarea>
+          <div id="table-wrapper">
+            <table id="dataTable">
+              <thead>
+                <tr>
+                  <th>電話番号</th>
+                  <th>送信内容</th>
+                  <th>生成URL</th>
+                  <th>送信状態</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (results.length) { %>
+                  <% results.forEach(function(row) { %>
+                    <tr>
+                      <td><%= row.raw_input_phone %></td>
+                      <td class="message"><%= row.final_message %></td>
+                      <td class="url-cell"><a href="<%= row.send_url %>" target="_blank" rel="noreferrer"><%= row.send_url %></a></td>
+                      <td>
+                        <% if (row.errors.length) { %>
+                          <span class="status-error"><%= row.errors.join(' / ') %></span>
+                        <% } else if (mode === 'send') { %>
+                          <span><%= row.twilio_status || '送信処理済み' %></span>
+                          <% if (row.send_error_message) { %><small class="status-error"><%= row.send_error_message %></small><% } %>
+                        <% } else { %>
+                          <span>URL生成済み</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </form>
+    <script src="/admin.js"></script>
+  <% } %>
+</body>
+</html>

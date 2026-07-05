@@ -1,0 +1,253 @@
+body,
+p {
+  padding: 0;
+  margin: auto;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  color: #111827;
+  background: #fff;
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  margin-top: 0;
+  border-bottom: 1px solid black;
+}
+
+button {
+  display: block;
+  width: 100%;
+  min-height: 2.8em;
+  margin-bottom: 10px;
+  border: 1px solid #686865;
+  background: #f2f2f2;
+  color: #000;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #e6e6e6;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+label {
+  text-align: left;
+  font-size: 1.25em;
+  color: #777776;
+  display: block;
+}
+
+main#controls {
+  padding: 3em;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.left-column,
+.right-column {
+  min-width: 16em;
+  margin: 0 1.5em;
+  text-align: center;
+}
+
+.left-column {
+  width: 30%;
+}
+
+.right-column {
+  width: 70%;
+  padding: 0 1.5em;
+}
+
+input,
+textarea {
+  font-family: Helvetica-LightOblique, Helvetica, sans-serif;
+  font-style: oblique;
+  font-size: 1em;
+  width: 100%;
+  height: 2.5em;
+  padding: 0 0.5em;
+  display: block;
+  margin: 10px 0;
+  border: 1px solid #c7c7c7;
+  box-sizing: border-box;
+}
+
+input[readonly],
+input:disabled {
+  background: #f8f8f8;
+  color: #777776;
+}
+
+input[type="file"] {
+  margin-bottom: 20px;
+  border: none;
+  padding: 0;
+}
+
+#log {
+  text-align: left;
+  border: 1px solid #686865;
+  padding: 10px;
+  height: 9.5em;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.log-entry {
+  color: #000;
+  font-family: "Share Tech Mono", "Courier New", Courier, monospace;
+  line-height: 1.25em;
+  margin-left: 1em;
+  text-indent: -1.25em;
+  width: 90%;
+}
+
+.error-text,
+.status-error {
+  color: #b42318;
+}
+
+.hide {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+}
+
+#table-wrapper {
+  height: 65vh;
+  overflow: auto;
+  border: #000 1px solid;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table,
+th,
+td {
+  border: 1px solid #ddd;
+}
+
+th {
+  background-color: #f2f2f2;
+  color: black;
+  padding: 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.message {
+  min-width: 300px;
+  white-space: pre-wrap;
+}
+
+.url-cell {
+  min-width: 260px;
+  word-break: break-all;
+}
+
+td small {
+  display: block;
+  margin-top: 4px;
+}
+
+.login-main {
+  padding: 3em;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.login-box {
+  margin-top: 10vh;
+}
+
+.notice {
+  border: 1px solid #fecdca;
+  color: #b42318;
+  background: #fff1f0;
+  padding: 10px;
+  margin: 10px 0;
+  text-align: left;
+}
+
+.logout-button {
+  background: #fff;
+}
+
+.lp {
+  background: #edf4f7;
+}
+
+.lpbox {
+  width: min(560px, calc(100% - 32px));
+  margin: 48px auto;
+  background: #fff;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.eyebrow {
+  color: #146c94;
+  font-weight: 800;
+}
+
+.choiceList {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.choice {
+  display: block;
+  border: 1px solid #686865;
+  padding: 12px 16px;
+  color: #000;
+  background: #f2f2f2;
+  text-align: center;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  main#controls {
+    padding: 1em;
+    display: block;
+  }
+
+  .left-column,
+  .right-column {
+    width: auto;
+    margin: 0 0 1em;
+    padding: 0;
+  }
+
+  #table-wrapper {
+    height: 55vh;
+  }
+}

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: driver
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: TRACKING_SECRET
+        generateValue: true
+      - key: GAS_WEBAPP_URL
+        sync: false
+      - key: LOG_GAS_POST_URL
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false

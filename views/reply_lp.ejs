@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>現在のお仕事探し状況</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="lp">
+  <main class="lpbox">
+    <p class="eyebrow">以前ご登録いただいた方向け</p>
+    <h1>現在のお仕事探し状況を教えてください</h1>
+    <p>近いものを1つ選んでください。</p>
+    <% if (!gasConfigured) { %>
+      <div class="notice error">GAS_WEBAPP_URLが未設定です。</div>
+    <% } %>
+    <div class="choiceList">
+      <% answers.forEach(function(answer) { %>
+        <a class="choice" href="<%= answer.url %>"><%= answer.label %></a>
+      <% }) %>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-K35QKZFD");
+    </script>
+    <!-- End Google Tag Manager -->
+    <!-- Google Tag Manager ggl3 -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-WM6PKJQP");
+    </script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>お仕事検索</title>
+    <link rel="stylesheet" href="/driver-concierge-b/lp-b.css" />
+  </head>
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-K35QKZFD"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-WM6PKJQP"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div class="app">
+      <header>
+        <h1>
+          ドライバー特化の転職エージェント
+          <br />
+          ドライバーコンシェルジュ【公式】
+        </h1>
+      </header>
+      <div class="fv-container">
+        <img class="fv" src="/driver-concierge-b/fv.jpg" alt="" />
+        <div class="fv-buttons-container">
+          <div class="fv-buttons">
+            <a class="fv-button" id="fv-button-now" href="tel:07084435034">アドバイザーに電話で相談する▶︎</a>
+            <a class="fv-button" id="fv-button-later" href="https://lin.ee/UTlxf1Q">アドバイザーにLINEで相談する▶︎</a>
+            <a class="fv-button" id="fv-button-jobs" href="<%= jobsUrl %>">求人を見る▶︎</a>
+          </div>
+        </div>
+      </div>
+      <footer>
+        <p id="dateTime">最終求人更新 読み込み中...</p>
+      </footer>
+      <script>
+        const fetchDateTime = async () => {
+          try {
+            const response = await fetch(
+              "https://script.google.com/macros/s/AKfycbwTixURH0MpphOJtG0cpDCLqMs6hFVUe9sasXz3RKW_x7ZSeEWkRZ3xH2sd78uJB3fb/exec"
+            );
+            let data = await response.text();
+            if (data == null || data > 30) {
+              data = "エラー";
+            }
+            document.getElementById("dateTime").innerText =
+              "最終求人更新 " + data;
+          } catch (error) {
+            document.getElementById("dateTime").innerText =
+              "最終求人更新 エラー";
+          }
+        };
+
+        fetchDateTime();
+      </script>
+    </div>
+  </body>
+</html>

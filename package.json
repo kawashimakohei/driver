@@ -1,0 +1,19 @@
+{
+  "name": "past-lead-sms-tracking-mvp",
+  "version": "1.0.0",
+  "description": "Twilio SMS tracking MVP for past registered leads with GAS-backed read-only DB lookup and log output.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "twilio": "^5.4.0"
+  }
+}
