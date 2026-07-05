@@ -244,9 +244,7 @@ function getWritableSheet_(sheetName) {
     throw new Error('Write operation blocked. Not a writable sheet: ' + sheetName);
   }
 
-  const ss = SpreadsheetApp.openById(
-    PropertiesService.getScriptProperties().getProperty('LOG_SPREADSHEET_ID')
-  );
+  const ss = SpreadsheetApp.openById(getRequiredProp_('LOG_SPREADSHEET_ID'));
 
   const sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
