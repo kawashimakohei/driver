@@ -1,7 +1,9 @@
 const DB_SHEETS = [
   { name: '【閲覧用】', key: 'a', priority: 3 },
   { name: '【閲覧用】タクシー', key: 'b', priority: 2 },
-  { name: '【閲覧用】スカウト', key: 'c', priority: 1 }
+  { name: '【閲覧用】スカウト', key: 'c', priority: 1 },
+  { name: '【記入用】AI Slackbot', key: 'ai_slackbot', priority: 4, dataStartRow: 4, phoneIndex: 0, candidateNoIndex: 6, nameIndex: 2, addressIndex: -1 },
+  { name: '【記入用】SMS折返', key: 'sms_callback', priority: 5, dataStartRow: 5, phoneIndex: 0, candidateNoIndex: 3, nameIndex: 4, addressIndex: -1 }
 ];
 
 const WRITABLE_SHEETS = [
@@ -13,7 +15,8 @@ const WRITABLE_SHEETS = [
   'ImmediateCallQueue',
   'DBOutputLogs',
   'ImmediateCallOutputLogs',
-  'PublicClickEvents'
+  'PublicClickEvents',
+  '【記入用】Clickbot'
 ];
 
 const HEADERS = {
@@ -255,9 +258,27 @@ function getWritableSheet_(sheetName) {
   return sheet;
 }
 
+function getClickbotSheet_() {
+  const spreadsheetId =
+    PropertiesService.getScriptProperties().getProperty('CLICKBOT_SPREADSHEET_ID') ||
+    '10ZMzFfdFqefcZ-IG3YjDWjBOu8WDrrlzZHmT-6HHa3I';
+  const sheetName =
+    PropertiesService.getScriptProperties().getProperty('CLICKBOT_SHEET_NAME') ||
+    '【記入用】Clickbot';
+  if (WRITABLE_SHEETS.indexOf(sheetName) === -1) {
+    throw new Error('Write operation blocked. Not a writable Clickbot sheet: ' + sheetName);
+  }
+  const sheet = SpreadsheetApp.openById(spreadsheetId).getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error('Clickbot sheet not found: ' + sheetName);
+  }
+  return sheet;
+}
+
 function setupLogSheets() {
   const ss = SpreadsheetApp.openById(getRequiredProp_('LOG_SPREADSHEET_ID'));
   WRITABLE_SHEETS.forEach(function(sheetName) {
+    if (sheetName === '【記入用】Clickbot') return;
     let sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
       sheet = ss.insertSheet(sheetName);
@@ -352,11 +373,12 @@ function doPost(e) {
 
 function recordPublicClick_(body) {
   const linkRecord = findLinkByPublicCode_(body.public_tracking_code);
+  const clickedPathKey = buildClickedPathKeyForOutput_(linkRecord, body);
   const payload = {
     timestamp: new Date(),
     phone_number: linkRecord ? linkRecord.phone_number : '',
     name: linkRecord ? linkRecord.name : '',
-    clicked_path_key: body.clicked_path_key || '',
+    clicked_path_key: clickedPathKey,
     public_tracking_code: body.public_tracking_code || '',
     clicked_url: body.clicked_url || '',
     lp_path: body.lp_path || '',
@@ -365,6 +387,38 @@ function recordPublicClick_(body) {
     raw_json: JSON.stringify(body)
   };
   appendObjects_('PublicClickEvents', HEADERS.PublicClickEvents, [payload]);
+  appendClickbotRow_(linkRecord, clickedPathKey);
+}
+
+function buildClickedPathKeyForOutput_(linkRecord, body) {
+  const sendUrl = linkRecord && linkRecord.send_url ? linkRecord.send_url : '';
+  const fromSendUrl = pathKeyFromUrl_(sendUrl);
+  return fromSendUrl || body.clicked_path_key || '';
+}
+
+function pathKeyFromUrl_(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '-');
+  } catch (error) {
+    return String(url).replace(/^https?:\/\/[^/]+\//, '').replace(/^\/+|\/+$/g, '').replace(/\/+/g, '-');
+  }
+}
+
+function appendClickbotRow_(linkRecord, clickedPathKey) {
+  if (!linkRecord || !clickedPathKey) return;
+  const row = [
+    linkRecord.phone_number || '',
+    linkRecord.address || '',
+    linkRecord.name || '',
+    clickedPathKey
+  ];
+  withLock_(function() {
+    const sheet = getClickbotSheet_();
+    const nextRow = Math.max(sheet.getLastRow() + 1, 4);
+    sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
+  });
 }
 
 function lookupCandidates_(phones) {
@@ -384,23 +438,29 @@ function lookupCandidates_(phones) {
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
     const lastColumn = sheet.getLastColumn();
-    if (lastRow < 5 || lastColumn < 4) return;
-    const values = sheet.getRange(5, 1, lastRow - 4, lastColumn).getDisplayValues();
-    values.forEach(function(row) {
-      const normalized = normalizePhone_(row[3]);
+    const dataStartRow = definition.dataStartRow || 5;
+    const phoneIndex = definition.phoneIndex == null ? 3 : definition.phoneIndex;
+    const candidateNoIndex = definition.candidateNoIndex == null ? 2 : definition.candidateNoIndex;
+    const nameIndex = definition.nameIndex == null ? 5 : definition.nameIndex;
+    const addressIndex = definition.addressIndex == null ? 4 : definition.addressIndex;
+    if (lastRow < dataStartRow || lastColumn <= phoneIndex) return;
+    const values = sheet.getRange(dataStartRow, 1, lastRow - dataStartRow + 1, lastColumn).getDisplayValues();
+    values.forEach(function(row, rowIndex) {
+      const normalized = normalizePhone_(row[phoneIndex]);
       if (!targets[normalized]) return;
-      const phone = formatPhone_(row[3]);
+      const phone = formatPhone_(row[phoneIndex]);
+      const candidateNo = row[candidateNoIndex] || '';
       targets[normalized].push({
-        candidate_key: definition.key + '_' + row[2],
-        candidate_no: row[2] || '',
+        candidate_key: definition.key + '_' + (candidateNo || 'row_' + (dataStartRow + rowIndex)),
+        candidate_no: candidateNo,
         db_sheet_key: definition.key,
         db_sheet_name: definition.name,
         priority: definition.priority,
-        name: row[5] || '',
+        name: row[nameIndex] || '',
         phone_number: phone.withZero,
         phone_without_leading_zero: phone.withoutZero,
         email: row[9] || '',
-        address: row[4] || '',
+        address: addressIndex >= 0 ? row[addressIndex] || '' : '',
         license: row[10] || '',
         age: row[11] || '',
         gender: row[12] || '',

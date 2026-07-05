@@ -77,6 +77,8 @@ TRACKING_SECRET=
 SLACK_WEBHOOK_URL=
 DB_OUTPUT_SHEET_NAME=PastSMS_DB
 IMMEDIATE_CALL_SHEET_NAME=ImmediateCallQueue
+CLICKBOT_SPREADSHEET_ID=10ZMzFfdFqefcZ-IG3YjDWjBOu8WDrrlzZHmT-6HHa3I
+CLICKBOT_SHEET_NAME=【記入用】Clickbot
 OUTPUT_CLICK_TO_DB=false
 OUTPUT_CLICK_TO_IMMEDIATE_CALL=false
 REPLY_LP_URL=https://your-render-app.onrender.com/lp/reply
@@ -96,6 +98,8 @@ JOBS_URL=
 【閲覧用】スカウト
 ```
 
+Clickbot連携では、上記3シートが同じスプレッドシート内にない場合の読み取り候補として、`【記入用】AI Slackbot`と`【記入用】SMS折返`も参照できます。これらも読み取り専用で扱い、書き込みません。
+
 GAS内では`dbSs = SpreadsheetApp.openById(DB_SPREADSHEET_ID)`を読み取り専用として扱い、`getSheetByName()`、`getRange()`、`getDisplayValues()`、`getLastRow()`、`getLastColumn()`だけを使います。
 
 `LOG_SPREADSHEET_ID`はログ用です。書き込みは次の許可シートだけに限定しています。
@@ -110,6 +114,7 @@ PastSMS_DB
 ImmediateCallQueue
 DBOutputLogs
 ImmediateCallOutputLogs
+【記入用】Clickbot
 ```
 
 ## ログ用シートのヘッダー
@@ -146,6 +151,15 @@ timestamp, phone_number, name, clicked_path_key, public_tracking_code, clicked_u
 
 ```text
 https://driver-concierge.jp/scout/jrbus/a36063 -> scout-jrbus-a36063
+```
+
+同時に`CLICKBOT_SPREADSHEET_ID`の`CLICKBOT_SHEET_NAME`へ、4行目以降に次の形式で追記します。
+
+```text
+A列: 電話番号
+B列: 住所
+C列: お名前
+D列: clicked_path_key
 ```
 
 ### AnswerEvents
