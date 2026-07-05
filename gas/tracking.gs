@@ -428,7 +428,10 @@ function lookupCandidates_(phones) {
   const keys = Object.keys(targets);
   if (!keys.length) return {};
 
-  const dbSs = SpreadsheetApp.openById(getRequiredProp_('DB_SPREADSHEET_ID'));      // 読み取り専用
+  const dbSpreadsheetId = getProps_().getProperty('DB_SPREADSHEET_ID');
+  if (!dbSpreadsheetId) return {};
+
+  const dbSs = SpreadsheetApp.openById(dbSpreadsheetId);      // 読み取り専用
   const results = {};
 
   DB_SHEETS.forEach(function(definition) {
