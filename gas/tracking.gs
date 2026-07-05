@@ -440,39 +440,35 @@ function lookupCandidates_(phones) {
     const sheet = dbSs.getSheetByName(definition.name);
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
-    const lastColumn = sheet.getLastColumn();
-    const dataStartRow = definition.dataStartRow || 5;
-    const phoneIndex = definition.phoneIndex == null ? 3 : definition.phoneIndex;
-    const candidateNoIndex = definition.candidateNoIndex == null ? 2 : definition.candidateNoIndex;
-    const nameIndex = definition.nameIndex == null ? 5 : definition.nameIndex;
-    const addressIndex = definition.addressIndex == null ? 4 : definition.addressIndex;
-    if (lastRow < dataStartRow || lastColumn <= phoneIndex) return;
-    const values = sheet.getRange(dataStartRow, 1, lastRow - dataStartRow + 1, lastColumn).getDisplayValues();
-    values.forEach(function(row, rowIndex) {
-      const normalized = normalizePhone_(row[phoneIndex]);
+    const dataStartRow = 5;
+    if (lastRow < dataStartRow) return;
+    // Read only C:F: candidate_no, phone_number, address, name.
+    const values = sheet.getRange(dataStartRow, 3, lastRow - dataStartRow + 1, 4).getDisplayValues();
+    values.forEach(function(row) {
+      const normalized = normalizePhone_(row[1]);
       if (!targets[normalized]) return;
-      const phone = formatPhone_(row[phoneIndex]);
-      const candidateNo = row[candidateNoIndex] || '';
+      const phone = formatPhone_(row[1]);
+      const candidateNo = row[0] || '';
       targets[normalized].push({
-        candidate_key: definition.key + '_' + (candidateNo || 'row_' + (dataStartRow + rowIndex)),
+        candidate_key: definition.key + '_' + candidateNo,
         candidate_no: candidateNo,
         db_sheet_key: definition.key,
         db_sheet_name: definition.name,
         priority: definition.priority,
-        name: row[nameIndex] || '',
+        name: row[3] || '',
         phone_number: phone.withZero,
         phone_without_leading_zero: phone.withoutZero,
-        email: row[9] || '',
-        address: addressIndex >= 0 ? row[addressIndex] || '' : '',
-        license: row[10] || '',
-        age: row[11] || '',
-        gender: row[12] || '',
-        station: row[19] || '',
-        prefecture: row[22] || '',
-        applied_at: row[23] || '',
-        apply_media: row[24] || '',
-        apply_route: row[25] || '',
-        status: row[26] || ''
+        email: '',
+        address: row[2] || '',
+        license: '',
+        age: '',
+        gender: '',
+        station: '',
+        prefecture: '',
+        applied_at: '',
+        apply_media: '',
+        apply_route: '',
+        status: ''
       });
     });
   });
