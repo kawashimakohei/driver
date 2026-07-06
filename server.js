@@ -76,7 +76,7 @@ function buildPublicTrackingCode(lpUrl) {
     const first = (normalized.match(/[a-zA-Z0-9]/) || ["x"])[0].toLowerCase();
     prefix = first;
   }
-  return `${prefix}${crypto.randomInt(10000, 100000)}`;
+  return `${prefix}${crypto.randomBytes(6).toString("hex")}`;
 }
 
 function appendTrackingCodeToUrl(lpUrl, publicTrackingCode) {
@@ -205,6 +205,9 @@ async function postToGas(action, payload) {
   if (!LOG_GAS_POST_URL) {
     throw new Error("LOG_GAS_POST_URL or GAS_WEBAPP_URL is not configured.");
   }
+  if (!TRACKING_SECRET) {
+    throw new Error("TRACKING_SECRET is not configured.");
+  }
   const response = await fetch(LOG_GAS_POST_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -232,15 +235,26 @@ function getPublicUrl(req) {
 function getClickedPathKey(pathValue) {
   return String(pathValue || "")
     .replace(/^\/+|\/+$/g, "")
-    .replace(/\/+/g, "-");
+    .replace(/\/+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+}
+
+function sanitizePublicTrackingCode(value) {
+  const normalized = String(value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{4,79}$/.test(normalized)) return "";
+  return normalized;
 }
 
 async function recordPublicClick(req, publicTrackingCode) {
-  if (!publicTrackingCode || !LOG_GAS_POST_URL || !TRACKING_SECRET) return;
+  const safePublicTrackingCode = sanitizePublicTrackingCode(publicTrackingCode);
+  if (!safePublicTrackingCode || !LOG_GAS_POST_URL || !TRACKING_SECRET) return;
   const clickedPathKey = getClickedPathKey(req.path);
   try {
     await postToGas("recordPublicClick", {
-      public_tracking_code: publicTrackingCode,
+      public_tracking_code: safePublicTrackingCode,
       clicked_path_key: clickedPathKey,
       clicked_url: getPublicUrl(req),
       lp_path: req.path

@@ -10,12 +10,18 @@ const DB_SHEETS = [
   { name: '【閲覧用】タクシー', key: 'b', priority: 2 },
   { name: '【閲覧用】', key: 'a', priority: 3 }
 ];
+const DB_SHEET_NAMES = DB_SHEETS.map(function(definition) {
+  return definition.name;
+});
 
 const DATA_START_ROW = 5;
 const DB_COL_CANDIDATE_NO = 3;
 const DB_COL_PHONE = 4;
 const DB_COL_ADDRESS = 5;
 const DB_COL_NAME = 6;
+const MAX_BATCH_ROWS = 500;
+const MAX_SHORT_TEXT_LENGTH = 200;
+const MAX_URL_LENGTH = 1000;
 
 const CLICKBOT_SHEET_NAME = '【記入用】Clickbot';
 
@@ -94,6 +100,31 @@ const HEADERS = {
 };
 
 const WRITABLE_SHEETS = Object.keys(HEADERS);
+const ALLOWED_ACTIONS = [
+  'lookup',
+  'recordLinkIndexBatch',
+  'recordSendLogsBatch',
+  'recordPublicClick'
+];
+
+function isDbSheetName_(sheetName) {
+  return DB_SHEET_NAMES.indexOf(sheetName) !== -1;
+}
+
+function assertWritableSheet_(sheetName) {
+  if (isDbSheetName_(sheetName)) {
+    throw new Error('DB sheet write operation blocked.');
+  }
+  if (WRITABLE_SHEETS.indexOf(sheetName) === -1 && sheetName !== CLICKBOT_SHEET_NAME) {
+    throw new Error('Write operation blocked.');
+  }
+}
+
+function assertDbReadSheet_(sheetName) {
+  if (!isDbSheetName_(sheetName)) {
+    throw new Error('DB read operation blocked.');
+  }
+}
 
 function getActiveSpreadsheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -113,6 +144,24 @@ function getRequiredProp_(name) {
 
 function isSecretValid_(body) {
   return String(body.secret || '') === getRequiredProp_('TRACKING_SECRET');
+}
+
+function safeText_(value, maxLength) {
+  const text = String(value || '')
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .slice(0, maxLength || MAX_SHORT_TEXT_LENGTH);
+  if (/^[=+\-@]/.test(text)) return "'" + text;
+  return text;
+}
+
+function safeUrl_(value) {
+  return safeText_(value, MAX_URL_LENGTH);
+}
+
+function safePublicTrackingCode_(value) {
+  const normalized = safeText_(value, 80).replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{4,79}$/.test(normalized)) return '';
+  return normalized;
 }
 
 function normalizePhone_(value) {
@@ -153,9 +202,7 @@ function withLock_(callback) {
 }
 
 function getWritableSheet_(sheetName) {
-  if (WRITABLE_SHEETS.indexOf(sheetName) === -1) {
-    throw new Error('Write operation blocked.');
-  }
+  assertWritableSheet_(sheetName);
   const ss = getActiveSpreadsheet_();
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
@@ -168,7 +215,13 @@ function getWritableSheet_(sheetName) {
 function getClickbotSheet_() {
   const sheet = getActiveSpreadsheet_().getSheetByName(CLICKBOT_SHEET_NAME);
   if (!sheet) throw new Error('Clickbot sheet not found.');
+  assertWritableSheet_(sheet.getName());
   return sheet;
+}
+
+function getDbSheetForRead_(sheetName) {
+  assertDbReadSheet_(sheetName);
+  return getActiveSpreadsheet_().getSheetByName(sheetName);
 }
 
 function readHeaders_(sheet) {
@@ -177,6 +230,7 @@ function readHeaders_(sheet) {
 }
 
 function ensureHeaders_(sheet, headers) {
+  assertWritableSheet_(sheet.getName());
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     return headers.slice();
@@ -214,6 +268,17 @@ function setupLogSheets() {
   getClickbotSheet_();
 }
 
+function selfTestDbWriteGuard() {
+  let blocked = false;
+  try {
+    assertWritableSheet_(DB_SHEETS[0].name);
+  } catch (error) {
+    blocked = true;
+  }
+  if (!blocked) throw new Error('DB write guard failed.');
+  return 'OK: DB sheets are blocked from write helpers.';
+}
+
 function doGet() {
   return HtmlService.createHtmlOutput(
     '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
@@ -225,31 +290,32 @@ function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (!isSecretValid_(body)) throw new Error('Unauthorized');
+    const action = safeText_(body.action, 60);
+    if (ALLOWED_ACTIONS.indexOf(action) === -1) throw new Error('Unknown action');
 
-    if (body.action === 'lookup') {
+    if (action === 'lookup') {
       return json_({ ok: true, results: {} });
     }
-    if (body.action === 'recordLinkIndexBatch') {
+    if (action === 'recordLinkIndexBatch') {
       recordLinkIndexBatch_(body.rows || []);
       return json_({ ok: true });
     }
-    if (body.action === 'recordSendLogsBatch') {
+    if (action === 'recordSendLogsBatch') {
       recordSendLogsBatch_(body.rows || []);
       return json_({ ok: true });
     }
-    if (body.action === 'recordPublicClick') {
+    if (action === 'recordPublicClick') {
       recordPublicClick_(body);
       return json_({ ok: true });
     }
     throw new Error('Unknown action');
   } catch (error) {
-    console.error(error && error.stack ? error.stack : error);
     return json_({ ok: false, error: 'GAS request failed' });
   }
 }
 
 function recordLinkIndexBatch_(rows) {
-  const sanitized = rows.map(sanitizeLinkIndexRow_).filter(function(row) {
+  const sanitized = rows.slice(0, MAX_BATCH_ROWS).map(sanitizeLinkIndexRow_).filter(function(row) {
     return row.public_tracking_code && row.phone_number;
   });
   appendObjects_('LinkIndex', sanitized);
@@ -258,22 +324,22 @@ function recordLinkIndexBatch_(rows) {
 function sanitizeLinkIndexRow_(row) {
   const phone = formatPhone_(row.phone_number || row.raw_input_phone);
   return {
-    created_at: row.created_at || new Date(),
-    candidate_key: row.candidate_key || '',
+    created_at: safeText_(row.created_at, 80) || new Date(),
+    candidate_key: safeText_(row.candidate_key),
     candidate_no: '',
     db_sheet_key: '',
     db_sheet_name: '',
     match_status: 'not_looked_up',
     matched_count: '',
     matched_sheets: '',
-    link_id: row.link_id || '',
-    campaign_id: row.campaign_id || '',
-    channel: row.channel || '',
-    destination_type: row.destination_type || '',
+    link_id: safeText_(row.link_id),
+    campaign_id: safeText_(row.campaign_id),
+    channel: safeText_(row.channel, 40),
+    destination_type: safeText_(row.destination_type, 40),
     tracking_url: '',
-    lp_url: row.lp_url || '',
-    public_tracking_code: row.public_tracking_code || '',
-    send_url: row.send_url || '',
+    lp_url: safeUrl_(row.lp_url),
+    public_tracking_code: safePublicTrackingCode_(row.public_tracking_code),
+    send_url: safeUrl_(row.send_url),
     final_message: '',
     name: '',
     phone_number: phone.withZero,
@@ -295,11 +361,11 @@ function sanitizeLinkIndexRow_(row) {
 }
 
 function recordSendLogsBatch_(rows) {
-  const sanitized = rows.map(function(row) {
+  const sanitized = rows.slice(0, MAX_BATCH_ROWS).map(function(row) {
     const phone = formatPhone_(row.phone_number || row.raw_input_phone);
     return {
-      timestamp: row.timestamp || new Date(),
-      candidate_key: row.candidate_key || '',
+      timestamp: safeText_(row.timestamp, 80) || new Date(),
+      candidate_key: safeText_(row.candidate_key),
       candidate_no: '',
       db_sheet_name: '',
       match_status: '',
@@ -311,16 +377,16 @@ function recordSendLogsBatch_(rows) {
       address: '',
       license: '',
       prefecture: '',
-      campaign_id: row.campaign_id || '',
-      link_id: row.link_id || '',
-      channel: row.channel || '',
-      destination_type: row.destination_type || '',
+      campaign_id: safeText_(row.campaign_id),
+      link_id: safeText_(row.link_id),
+      channel: safeText_(row.channel, 40),
+      destination_type: safeText_(row.destination_type, 40),
       tracking_url: '',
-      send_url: row.send_url || '',
+      send_url: safeUrl_(row.send_url),
       final_message: '',
-      twilio_sid: row.twilio_sid || '',
-      twilio_status: row.twilio_status || '',
-      error_message: row.error_message || '',
+      twilio_sid: safeText_(row.twilio_sid),
+      twilio_status: safeText_(row.twilio_status, 80),
+      error_message: safeText_(row.error_message),
       raw_json: ''
     };
   });
@@ -328,7 +394,8 @@ function recordSendLogsBatch_(rows) {
 }
 
 function recordPublicClick_(body) {
-  const linkRecord = findLinkByPublicCode_(body.public_tracking_code);
+  const publicTrackingCode = safePublicTrackingCode_(body.public_tracking_code);
+  const linkRecord = findLinkByPublicCode_(publicTrackingCode);
   const clickedPathKey = buildClickedPathKeyForOutput_(linkRecord, body);
   let lookupStatus = 'link_not_found';
   let outputStatus = 'skipped';
@@ -336,16 +403,15 @@ function recordPublicClick_(body) {
   if (linkRecord && clickedPathKey) {
     const candidate = lookupCandidateByPhone_(linkRecord.phone_number || linkRecord.raw_input_phone);
     lookupStatus = candidate.found ? 'matched' : 'unmatched';
-    appendClickbotRow_(linkRecord, candidate, clickedPathKey);
-    outputStatus = 'output';
+    outputStatus = appendClickbotRow_(linkRecord, candidate, clickedPathKey) ? 'output' : 'duplicate_skipped';
   }
 
   appendObjects_('PublicClickEvents', [{
     timestamp: new Date(),
-    public_tracking_code: body.public_tracking_code || '',
+    public_tracking_code: publicTrackingCode,
     clicked_path_key: clickedPathKey || '',
-    clicked_url: body.clicked_url || '',
-    lp_path: body.lp_path || '',
+    clicked_url: safeUrl_(body.clicked_url),
+    lp_path: safeText_(body.lp_path, 300),
     link_id: linkRecord ? linkRecord.link_id : '',
     lookup_status: lookupStatus,
     clickbot_output_status: outputStatus
@@ -370,7 +436,8 @@ function sanitizePathKey_(value) {
     .replace(/\/+/g, '-')
     .replace(/[^a-zA-Z0-9_-]/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .slice(0, MAX_SHORT_TEXT_LENGTH);
 }
 
 function findLinkByPublicCode_(publicTrackingCode) {
@@ -421,11 +488,10 @@ function lookupCandidateByPhone_(phoneValue) {
 
   if (!patterns.length) return { found: false, phone_number: phone.withZero, address: '', name: '' };
 
-  const ss = getActiveSpreadsheet_();
   let selected = null;
   DB_SHEETS.forEach(function(definition) {
     if (selected && selected.priority <= definition.priority) return;
-    const sheet = ss.getSheetByName(definition.name);
+    const sheet = getDbSheetForRead_(definition.name);
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
     if (lastRow < DATA_START_ROW) return;
@@ -470,11 +536,25 @@ function appendClickbotRow_(linkRecord, candidate, clickedPathKey) {
     candidate.name || '',
     clickedPathKey
   ];
-  withLock_(function() {
+  return withLock_(function() {
     const sheet = getClickbotSheet_();
+    if (hasClickbotPathKey_(sheet, clickedPathKey)) return false;
     const nextRow = findNextClickbotOutputRow_(sheet);
     sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
+    return true;
   });
+}
+
+function hasClickbotPathKey_(sheet, clickedPathKey) {
+  if (!clickedPathKey) return false;
+  const firstOutputRow = 4;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < firstOutputRow) return false;
+  return Boolean(sheet
+    .getRange(firstOutputRow, 4, lastRow - firstOutputRow + 1, 1)
+    .createTextFinder(clickedPathKey)
+    .matchEntireCell(true)
+    .findNext());
 }
 
 function findNextClickbotOutputRow_(sheet) {
