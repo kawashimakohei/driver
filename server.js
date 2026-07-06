@@ -250,13 +250,6 @@ async function recordPublicClick(req, publicTrackingCode) {
   }
 }
 
-async function lookupCandidates(rows) {
-  const phones = [...new Set(rows.map((row) => normalizePhone(row.rawInputPhone)).filter(Boolean))];
-  if (!phones.length) return {};
-  const result = await postToGas("lookup", { phones });
-  return result.results || {};
-}
-
 function buildUnmatchedCandidate(normalizedPhone) {
   const phone = formatPhone(normalizedPhone);
   return {
