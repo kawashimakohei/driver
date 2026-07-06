@@ -472,7 +472,20 @@ function appendClickbotRow_(linkRecord, candidate, clickedPathKey) {
   ];
   withLock_(function() {
     const sheet = getClickbotSheet_();
-    const nextRow = Math.max(sheet.getLastRow() + 1, 4);
+    const nextRow = findNextClickbotOutputRow_(sheet);
     sheet.getRange(nextRow, 1, 1, row.length).setValues([row]);
   });
+}
+
+function findNextClickbotOutputRow_(sheet) {
+  const firstOutputRow = 4;
+  const lastRow = Math.max(sheet.getLastRow(), firstOutputRow);
+  const values = sheet.getRange(firstOutputRow, 1, lastRow - firstOutputRow + 1, 4).getDisplayValues();
+  for (let i = 0; i < values.length; i += 1) {
+    const isEmpty = values[i].every(function(value) {
+      return String(value || '').trim() === '';
+    });
+    if (isEmpty) return firstOutputRow + i;
+  }
+  return lastRow + 1;
 }
